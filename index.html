@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genomic Variant AI Predictor</title>
+    <style>
+        :root {
+            --primary: #2A6F97;
+            --bg: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text: #212529;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text);
+            max-width: 600px; 
+            margin: 40px auto; 
+            padding: 20px; 
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h2 { color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        p { color: #6C757D; font-size: 14px; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-weight: 600; font-size: 14px; }
+        input { 
+            width: 100%; padding: 12px; margin-top: 6px; 
+            border: 1px solid #CED4DA; border-radius: 6px; 
+            box-sizing: border-box; font-size: 16px; font-family: monospace;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
+        button { 
+            background: var(--primary); color: white; border: none; 
+            padding: 14px; margin-top: 25px; width: 100%; 
+            cursor: pointer; font-size: 16px; font-weight: bold; 
+            border-radius: 6px; transition: background 0.2s;
+        }
+        button:hover { background: #014F86; }
+        #result { 
+            margin-top: 25px; padding: 20px; border-radius: 8px; 
+            display: none; border-left: 5px solid #DDD;
+        }
+        .loading { font-style: italic; color: var(--primary); animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🧬 AI Genomic Variant Predictor</h2>
+        <p>Academic Prototype: Predicts clinical pathogenicity using a live-connected Random Forest model trained on ClinVar data.</p>
+
+        <label>Reference Allele (REF Sequence):</label>
+        <input type="text" id="refAllele" value="ATCG" placeholder="e.g., A, ATCG">
+
+        <label>Alternate Allele (ALT Sequence):</label>
+        <input type="text" id="altAllele" value="A" placeholder="e.g., G, T">
+
+        <button onclick="sendToColab()">Run AI Analysis</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function sendToColab() {
+            const resultDiv = document.getElementById("result");
+            resultDiv.style.display = "block";
+            resultDiv.style.borderLeftColor = "#007BFF";
+            resultDiv.style.background = "#E9F5FE";
+            resultDiv.style.color = "#004085";
+            resultDiv.innerHTML = "<span class='loading'>📡 Transmitting data to Google Colab ML Cluster...</span>";
+
+            // ⚠️ UPDATE THIS EXACT LINK FROM YOUR COLAB CELL EACH RUN
+            const colabApiUrl = "https://shrink-wiring-pantyhose.ngrok-free.dev/predict"; 
+
+            const payload = {
+                ref: document.getElementById("refAllele").value.trim().toUpperCase(),
+                alt: document.getElementById("altAllele").value.trim().toUpperCase()
+            };
+
+            try {
+                const response = await fetch(colabApiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if(data.prediction === "Pathogenic") {
+                    resultDiv.style.background = "#FDE8E8";
+                    resultDiv.style.color = "#9B1C1C";
+                    resultDiv.style.borderLeftColor = "#E11D48";
+                    resultDiv.innerHTML = `<strong>🔴 AI Assessment: PATHOGENIC (Disease-Causing)</strong><br>
+                                           <span style="font-size:14px;">Confidence: ${data.confidence} | Classified Structural Mutation Type: ${data.type}</span>`;
+                } else {
+                    resultDiv.style.background = "#DEF7EC";
+                    resultDiv.style.color = "#03543F";
+                    resultDiv.style.borderLeftColor = "#059669";
+                    resultDiv.innerHTML = `<strong>🟢 AI Assessment: BENIGN (Harmless Variant)</strong><br>
+                                           <span style="font-size:14px;">Confidence: ${data.confidence} | Classified Structural Mutation Type: ${data.type}</span>`;
+                }
+            } catch (error) {
+                resultDiv.style.background = "#FEF3C7";
+                resultDiv.style.color = "#92400E";
+                resultDiv.style.borderLeftColor = "#D97706";
+                resultDiv.innerHTML = "<strong>❌ Connection Error</strong><br><small>Failed to reach the machine learning model. Verify that your Google Colab notebook cell is active and running, and the tunnel URL matches.</small>";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
